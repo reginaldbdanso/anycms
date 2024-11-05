@@ -24,7 +24,7 @@ const PostDetail: React.FC = () => {
   const fetchPost = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/posts/${id}`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/${id}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

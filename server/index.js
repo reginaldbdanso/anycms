@@ -6,11 +6,12 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
+import bodyParser from 'body-parser';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Configure Google Drive API
@@ -28,6 +29,17 @@ const upload = multer({ storage: storage });
 app.use(express.json());
 app.use(cors());
 
+// Allow cross-origin resource sharing
+app.use(cors({
+  origin: 'http://localhost:3000'
+ 
+}));
+
+//Increase the limit for JSON Payloads
+// app.use(bodyParser.json({limit: '10mb'}));
+// app.use(bodyParser.urlencoded({limit: '10mb', extended: true}));
+
+// Log requests to the console
 app.use((req, res, next) => {
   console.log(req.path, req.method);
   next();
@@ -58,21 +70,17 @@ async function writePosts(posts) {
 }
 
 // Upload image to Google Drive
-app.post('/api/upload', upload.single('image'), async (req, res) => {
+app.post('/api/upload', upload.single('file'), async (req, res) => {
   try {
-    const file = req.file;
-    const fileMetadata = {
-      name: file.originalname,
-      parents: [process.env.GOOGLE_DRIVE_FOLDER_ID], // Specify your folder ID
-    };
-
     const media = {
-      mimeType: file.mimetype,
-      body: Buffer.from(file.buffer),
+      mimeType: req.file.mimetype,
+      body: Buffer.from(req.file.buffer) // Use buffer instead of file path
     };
 
     const response = await drive.files.create({
-      resource: fileMetadata,
+      requestBody: {
+        name: req.file.originalname,
+      },
       media: media,
       fields: 'id',
     });
