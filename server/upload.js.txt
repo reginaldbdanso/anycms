@@ -1,0 +1,58 @@
+const express = require('express');
+const multer = require('multer');
+const { google } = require('googleapis');
+const path = require('path');
+const fs = require('fs');
+
+const router = express.Router();
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+
+const upload = multer({ storage });
+
+const drive = google.drive({
+  version: 'v3',
+  auth: new google.auth.GoogleAuth({
+    keyFile: 'path/to/your/service-account-file.json',
+    scopes: ['https://www.googleapis.com/auth/drive.file'],
+  }),
+});
+
+router.post('/upload', upload.single('coverImage'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  const filePath = path.join(__dirname, '..', 'uploads', req.file.filename);
+
+  try {
+    const response = await drive.files.create({
+      requestBody: {
+        name: req.file.filename,
+        mimeType: req.file.mimetype,
+      },
+      media: {
+        mimeType: req.file.mimetype,
+        body: fs.createReadStream(filePath),
+      },
+    });
+
+    res.json({ url: `https://drive.google.com/uc?id=${response.data.id}` });
+  } catch (error) {
+    console.error('Error uploading to Google Drive:', error);
+    res.status(500).json({ error: 'Failed to upload to Google Drive' });
+  } finally {
+    fs.unlink(filePath, (err) => {
+      if (err) console.error('Failed to delete local file:', err);
+    });
+  }
+});
+
+module.exports = router;

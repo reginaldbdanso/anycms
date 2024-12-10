@@ -31,7 +31,7 @@ app.use(cors());
 
 // Allow cross-origin resource sharing
 app.use(cors({
-  origin: 'http://localhost:3000'
+  origin: 'http://localhost:3001'
  
 }));
 
@@ -70,12 +70,13 @@ async function writePosts(posts) {
 }
 
 // Upload image to Google Drive
-app.post('/api/upload', upload.single('file'), async (req, res) => {
+app.post('/api/upload', upload.single('coverImage'), async (req, res) => {
   try {
     const media = {
       mimeType: req.file.mimetype,
       body: Buffer.from(req.file.buffer) // Use buffer instead of file path
     };
+    console.log(media);
 
     const response = await drive.files.create({
       requestBody: {
@@ -106,7 +107,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     });
   } catch (error) {
     console.error('Error uploading to Google Drive:', error);
-    res.status(500).json({ error: 'Failed to upload file' });
+    res.status(500).json({ error: 'Failed to upload file to Google Drive' });
   }
 });
 
@@ -114,7 +115,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 app.get('/api/posts', async (req, res) => {
   try {
     const posts = await readPosts();
-    res.json(posts);
+    res.status(200).json(posts);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch posts' });
   }
