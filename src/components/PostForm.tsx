@@ -9,20 +9,59 @@ const PostForm: React.FC = () => {
   const [content, setContent] = useState('');
   const [author, setAuthor] = useState('');
   const [category, setCategory] = useState('');
-  // const [excerpt, setExcerpt] = useState('');
-  // const [authorImage, setAuthorImage] = useState('');
   const [coverImage, setCoverImage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  // Custom image handler for ReactQuill
+  const imageHandler = async () => {
+    const input = document.createElement('input');
+    input.setAttribute('type', 'file');
+    input.setAttribute('accept', 'image/*');
+    input.click();
+
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (file) {
+        try {
+          const formData = new FormData();
+          formData.append('coverImage', file);
+
+          const response = await fetch(import.meta.env.VITE_API_UPLOAD_URL, {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!response.ok) throw new Error('Upload failed');
+
+          const data = await response.json();
+          
+          // Get the Quill editor instance
+          const quill = (document.querySelector('.ql-editor') as any).__quill;
+          // Insert the image at current cursor position
+          const range = quill.getSelection(true);
+          quill.insertEmbed(range.index, 'image', data.url);
+        } catch (error) {
+          console.error('Error uploading image:', error);
+          setError('Failed to upload image');
+        }
+      }
+    };
+  };
+
   const modules = {
-    toolbar: [
-      [{ 'header': [1, 2, false] }],
-      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
-      [{'list': 'ordered'}, {'list': 'bullet'}, {'align': []}],
-      ['link', 'image'],
-      ['clean']
-    ],
+    toolbar: {
+      container: [
+        [{ 'header': [1, 2, false] }],
+        ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+        [{'list': 'ordered'}, {'list': 'bullet'}, {'align': []}],
+        ['link', 'image'],
+        ['clean']
+      ],
+      handlers: {
+        image: imageHandler
+      }
+    }
   };
 
   const formats = [
@@ -35,7 +74,7 @@ const PostForm: React.FC = () => {
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     const formData = new FormData();
-    formData.append('coverImage', file); // Ensure this matches the field name expected by Multer
+    formData.append('coverImage', file);
 
     try {
       const response = await fetch(import.meta.env.VITE_API_UPLOAD_URL, {
@@ -61,7 +100,6 @@ const PostForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
 
     try {
       const response = await fetch(import.meta.env.VITE_API_URL, {
@@ -70,10 +108,8 @@ const PostForm: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ title, content, author, category, coverImage }),
-        
       });
 
-      // console.log(category);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to create post');
@@ -96,20 +132,18 @@ const PostForm: React.FC = () => {
       {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">{error}</div>}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          {/* Title */}
           <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
           <input
-        type="text"
-        id="title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        required
-        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+            type="text"
+            id="title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
           />
         </div>
 
         <div>
-          {/* Cover Image */}
           <label htmlFor="coverImage" className="block text-sm font-medium text-gray-700">Cover Image</label>
           <div {...getRootProps()} className={`mt-1 block w-full rounded-md border-dashed border-2 ${isDragActive ? 'border-blue-300' : 'border-gray-300'} shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-4 text-center`}>
             <input {...getInputProps()} />
@@ -129,31 +163,28 @@ const PostForm: React.FC = () => {
         </div>
 
         <div>
-          {/* Content */}
           <label htmlFor="content" className="block text-sm font-medium text-gray-700">Content</label>
           <ReactQuill
-        theme="snow"
-        value={content}
-        onChange={setContent}
-        modules={modules}
-        formats={formats}
-        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+            theme="snow"
+            value={content}
+            onChange={setContent}
+            modules={modules}
+            formats={formats}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
           />
         </div>
         <div>
-          {/* Author */}
           <label htmlFor="author" className="block text-sm font-medium text-gray-700">Author</label>
           <input
-        type="text"
-        id="author"
-        value={author}
-        onChange={(e) => setAuthor(e.target.value)}
-        required
-        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+            type="text"
+            id="author"
+            value={author}
+            onChange={(e) => setAuthor(e.target.value)}
+            required
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
           />
         </div>
         
-       
         <div>
           <label htmlFor="category" className="block text-sm font-medium text-gray-700">Category</label>
           <select
